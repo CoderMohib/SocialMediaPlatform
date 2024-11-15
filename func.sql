@@ -15,6 +15,17 @@ RETURN
     SELECT *
 from Users
 WHERE UserID=@UserID;
+GO
+
+CREATE OR ALTER FUNCTION retriveName(@UserID INT)
+RETURNS VARCHAR(100)
+AS
+BEGIN
+RETURN
+    (SELECT FirstName + ' ' + LastName
+from Users
+WHERE UserID=@UserID)
+END;
 
 GO
 CREATE OR ALTER PROCEDURE InsertUser
@@ -103,5 +114,64 @@ UPDATE Users
 SET PasswordF=@PasswordF, UpdatedAt = GETDATE()
 WHERE UserID= @UserID
 
+GO
+CREATE OR ALTER PROCEDURE updateName
+    @UserID INT,
+    @Fname VARCHAR(50),
+    @Lname VARCHAR(50)
+AS
+UPDATE Users
+SET FirstName=@Fname, LastName = @Lname, UpdatedAt = GETDATE()
+WHERE UserID= @UserID
+GO
+CREATE OR ALTER PROCEDURE DelUser
+    @UserID INT
+AS
+DELETE FROM Users WHERE UserID = @UserID;
+GO
+-----------------------------------------------------
+CREATE OR ALTER PROCEDURE inputPosts
+@UserID INT,
+@Content Text
+AS
+    INSERT INTO Posts(UserID,Content) VALUES (@UserID,@Content);
+GO
+CREATE OR ALTER PROCEDURE DelPost
+    @UserID INT
+AS
+DELETE FROM Posts WHERE UserID = @UserID;
+GO
 
+CREATE OR ALTER FUNCTION getUserPost(@UserID INT)
+RETURNS TABLE
+AS
+RETURN( SELECT PostID,Content,CreatedAt from Posts WHERE UserID = @UserID );
 
+GO
+CREATE OR ALTER PROCEDURE DelLikes
+    @UserID INT
+AS
+DELETE FROM Likes WHERE UserID = @UserID;
+GO
+CREATE OR ALTER FUNCTION getLikes(@PostID INT)
+RETURNS INT
+AS
+BEGIN
+RETURN(SELECT COUNT(UserID) from Likes WHERE PostID = @PostID AND UserID IS NOT NULL)
+END
+
+GO
+
+CREATE OR ALTER FUNCTION getComments(@PostID INT)
+RETURNS INT
+AS
+BEGIN
+RETURN(SELECT COUNT(UserID) from Comments WHERE PostID = @PostID AND UserID IS NOT NULL)
+END
+
+GO
+CREATE OR ALTER PROCEDURE DelComments
+    @UserID INT
+AS
+DELETE FROM Comments WHERE UserID = @UserID;
+GO
