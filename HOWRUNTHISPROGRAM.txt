@@ -22,4 +22,17 @@
 6. Copy SocialMediaPlatform.sql file and paste in new Query and execute it
 7. Select New Query
 8. Copy Func.sql file and paste in new Query and execute it
-9. If you have python in your Windows, just run SocialMediaPlatformProject.py file OR setup Your python and then run it.
+
+9. If you don't python in your Windows, setup Your python and then run it
+   After setup:
+   If you don't have the ODBC Driver for SQL Server installed, follow these steps to download and install it:
+
+    Go to the official Microsoft download page for the ODBC Driver 17 for SQL Server:
+    https://learn.microsoft.com/en-us/sql/connect/odbc/download-odbc-driver-for-sql-server?view=sql-server-ver16
+    Choose the appropriate installer for your Windows version (64-bit or 32-bit).
+    Run the installer and follow the on-screen instructions to install the driver.
+    To confirm that the ODBC driver was installed correctly, you can check if it's available through the ODBC Data Source Administrator.
+    Press Win + R and type odbcad32 to open the ODBC Data Source Administrator.
+    Go to the Drivers tab. You should see an entry for ODBC Driver 17 for SQL Server. 
+
+10. Now Copy The Python file and run (Just connecting sqlServer Through Windows Authentication)
