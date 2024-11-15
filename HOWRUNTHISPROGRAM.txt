@@ -1,0 +1,25 @@
+1. First Opend CMD in Windows
+2. Run These commands one-by-one:
+    pip install pyodbc
+    (After installing Check if it is installed): 
+    pip show pyodbc
+    (It shows like this: 
+        Name: pyodbc
+        Version: 4.0.32
+        Summary: Python DB API 2.0 module for ODBC
+        Home-page: http://github.com/mkleehammer/pyodbc
+        Author: Michael K. Lee
+        Author-email: mkleehammer@gmail.com
+        License: MIT
+        Location: /path/to/python/site-packages
+        Requires:
+        Required-by:
+    )
+3. After That install SQL SERVER Management Studio and Also SQL Server
+    linke: https://youtu.be/FFp5BLoQLAA?si=vcAgwwdAxOINm0L6
+4. After that Just Open SSMS 
+5. Select New Query
+6. Copy SocialMediaPlatform.sql file and paste in new Query and execute it
+7. Select New Query
+8. Copy Func.sql file and paste in new Query and execute it
+9. If you have python in your Windows, just run SocialMediaPlatformProject.py file OR setup Your python and then run it.
