@@ -21,7 +21,7 @@
 5. Select New Query
 6. Copy SocialMediaPlatform.sql file and paste in new Query and execute it
 7. Select New Query
-8. Copy Func.sql file and paste in new Query and execute it
+8. Copy func.sql file and paste in new Query and execute it and Copy Proce.sql file and paste in new Query and execute it
 
 9. If you don't python in your Windows, setup Your python and then run it
    After setup:
