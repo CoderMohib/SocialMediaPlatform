@@ -227,7 +227,7 @@ def manageFriends(conn, userID):
             cursor.execute("EXEC getFriendsList ?", (userID,))
             friends = cursor.fetchall()
             if friends:
-                print("Your Friends:")
+                print(f"Your Friends: {len(friends)} ")
                 for friend in friends:
                     print(f"UserName: {friend[1]} | Name: {friend[2]} {friend[3]}")
             else:
@@ -262,6 +262,77 @@ def manageFriends(conn, userID):
         else:
             print("Invalid input. Please try again.")
             time.sleep(1.5)
+def manageGroupsForALL(conn,userID,groupsJoin,CheckInp):
+    cursor = conn.cursor()
+    while (True):
+        clear_screen()
+        print("1. Post in Group")
+        print("2. Show Groups Post")
+        print("3. Show Group Members")
+        print("4. Leave Group")
+        if groupsJoin[CheckInp-1][2] == userID:
+            pass
+            
+        
+
+def manageGroups(conn,userID):
+    cursor = conn.cursor()
+    while (True):
+        clear_screen()
+        print("1. Create Group")
+        print("2. Join Group")
+        print("3. View Your Groups")
+        print("4. Exit")
+        Userinput=input()
+        if Userinput in ['1','2','3','4']:
+            if Userinput == '1':
+                name = input("Enter Group Name: ").strip()
+                description = input("Enter Group Description(Optional): ")
+                cursor.execute("Exec newGroup ?,?,?",(userID,name,description))
+                conn.commit()
+                print("Group Created SuccessFully!")
+                time.sleep(1.8)
+            elif Userinput == '2':
+                cursor.execute("Select * from getALLGroup()")
+                groups = cursor.fetchall()
+                for i in range(len(groups)):
+                    print(f"GR NO. {i+1} GROUP NAME: {groups[i][1]}")
+                    print(f"Description: {groups[i][2]}")
+                    print()
+                inputNUM = int(input("Enter Group Number to Join: "))
+                if 1 <= inputNUM <= len(groups):
+                    groupID = groups[inputNUM-1][0]
+                    cursor.execute("Select * from getGroupMembers(?,?)",(groupID,userID))
+                    if cursor.fetchone():
+                        print("You Already Member of this Group!")
+                    else:
+                        cursor.execute("Exec insertGroupMember ?,?",(groupID,userID))
+                        conn.commit()
+                        print("Successfully join in the Group!")
+                else:
+                    print("Invalid Input!")
+                time.sleep(1.8)
+            elif Userinput == '3':
+                cursor.execute("Select * from specificGroupsOfUser(?)",(userID,))
+                groupsJoin = cursor.fetchall()
+                if groupsJoin:
+                    for i in range (len(groupsJoin)):
+                        print(f"Total Groups: {len(groupsJoin)}")
+                        print(f"Group Number: {i+1} Group Name: {groupsJoin[i][0]}")
+                        
+                    CheckInp = int(input("Enter Group Number to view: "))
+                    if 1 <= CheckInp <= len(groupsJoin):
+                        manageGroupsForALL(conn,userID,groupsJoin,CheckInp)
+                    else:
+                        print("Invalid Input!")
+                else:
+                    print("No Groups Join Yet!")
+                time.sleep(1.7)
+            elif Userinput == '4':
+                break
+        else:
+            print("Invalid Input!")
+            time.sleep(1.7)
 def updateSettings(conn,userID):
     terminal_width = os.get_terminal_size().columns
     cursor=conn.cursor()
@@ -348,32 +419,29 @@ def UserOptions(conn,userID):
         print(center_text("~" * terminal_width, terminal_width))
         print("1. Show Feed")
         print("2. Timeline")
-        print("3. Manage Friends")
-        print("4. Create Post")
-        print("5. Join Group")
-        print("6. Show Groups")
-        print("7. Update Account Setting")
-        print("8. Logout")
+        print("3. Create Post")
+        print("4. Manage Friends")
+        print("5. Manage Groups")
+        print("6. Update Account Setting")
+        print("7. Logout")
         print(center_text("~" * terminal_width, terminal_width))
         Userinput=input()
-        if Userinput in ['1','2','3','4','5','6','7','8']:
+        if Userinput in ['1','2','3','4','5','6','7']:
             clear_screen()
             if Userinput == '1':
                 pass
             elif Userinput == '2':
                 showTimeline(conn,userID)
             elif Userinput == '3':
-                manageFriends(conn, userID)
-            elif Userinput == '4':
                 CreatePost(conn,userID)
+            elif Userinput == '4':
+                manageFriends(conn, userID)
             elif Userinput == '5':
-                pass
-            elif Userinput == '6':
-                pass
-            elif Userinput == '7':  
+                manageGroups(conn,userID)
+            elif Userinput == '6':  
                 if updateSettings(conn,userID) == "Y":
                     break
-            elif Userinput == '8':  
+            elif Userinput == '7':  
                 break
         else:
             clear_screen()

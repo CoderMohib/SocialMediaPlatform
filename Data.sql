@@ -1,6 +1,4 @@
 USE SocialMediaPlatform;
-SELECT * from Friends
-DELETE From Friends WHERE SenderID = 3
 -- Insert Users
 INSERT INTO Users (Username, Email, PasswordF, FirstName, LastName, DateOfBirth)
 VALUES 

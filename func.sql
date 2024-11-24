@@ -125,7 +125,9 @@ CREATE OR ALTER FUNCTION checkUserLikedPost (@PostID INT, @UserID INT)
 RETURNS TABLE
 AS
     RETURN (
-        SELECT * FROM Likes WHERE PostID = @PostID AND UserID = @UserID
+        SELECT *
+FROM Likes
+WHERE PostID = @PostID AND UserID = @UserID
     )
 
 GO
@@ -135,8 +137,10 @@ RETURNS TABLE
 AS
     RETURN (
         SELECT SenderID,
-            ReceiverID,
-            Status FROM Friends WHERE (SenderID = @UserID AND ReceiverID = @FriendUserID) OR (SenderID = @FriendUserID AND ReceiverID = @UserID)
+    ReceiverID,
+    Status
+FROM Friends
+WHERE (SenderID = @UserID AND ReceiverID = @FriendUserID) OR (SenderID = @FriendUserID AND ReceiverID = @UserID)
     )
 
 GO
@@ -144,13 +148,37 @@ CREATE OR ALTER FUNCTION getPendingFriendRequests(@UserID INT)
 RETURNS TABLE
 AS
 RETURN (
- SELECT 
-        SenderID AS FriendID,
-        U.Username,
-        U.FirstName,
-        U.LastName
-    FROM Friends F
+ SELECT
+    SenderID AS FriendID,
+    U.Username,
+    U.FirstName,
+    U.LastName
+FROM Friends F
     INNER JOIN Users U ON F.SenderID = U.UserID
-    WHERE F.ReceiverID = @UserID AND F.Status = 'Pending'
+WHERE F.ReceiverID = @UserID AND F.Status = 'Pending'
 )
+GO
+CREATE OR ALTER FUNCTION getALLGroup()
+RETURNS TABLE
+AS
+RETURN(SELECT *
+from Groups)
+GO
+
+CREATE OR ALTER FUNCTION getGroupMembers(@GroupID INT,@UserID INT)
+RETURNS TABLE
+AS
+RETURN(SELECT *
+from GroupMembers
+WHERE GroupID = @GroupID and UserID = @UserID)
+GO
+
+CREATE OR ALTER FUNCTION specificGroupsOfUser
+(@UserID INT)
+RETURNS TABLE
+AS
+RETURN(
+    SELECT G.GroupID, G.GroupName , (SELECT UserID from Users WHERE UserID = G.CreatedBy) AS [ADMIN ID]
+from Groups G INNER join GroupMembers GM on GM.GroupID = G.GroupID AND GM.UserID = @UserID
+     )
 GO

@@ -126,6 +126,25 @@ On Friends (ReceiverID)
 CREATE INDEX idx_FRIENDS_SR
 On Friends (SenderID,ReceiverID)
 
+CREATE TABLE Groups (
+    GroupID INT PRIMARY KEY IDENTITY(1,1),
+    GroupName VARCHAR(100) NOT NULL,
+    Description TEXT NULL,
+    CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
+    CreatedBy INT NOT NULL,
+    FOREIGN KEY (CreatedBy) REFERENCES Users(UserID)
+);
+CREATE TABLE GroupMembers (
+    GroupID INT NOT NULL,
+    UserID INT NOT NULL,
+    Role VARCHAR(20) NOT NULL DEFAULT 'Member' CHECK (Role IN ('Member','Moderator','Admin')),
+    JoinedAt DATETIME NOT NULL DEFAULT GETDATE(),
+    PRIMARY KEY (GroupID, UserID),
+    FOREIGN KEY (GroupID) REFERENCES Groups(GroupID),
+    FOREIGN KEY (UserID) REFERENCES Users(UserID)
+);
+
+
 
 
 

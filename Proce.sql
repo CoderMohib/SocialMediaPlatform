@@ -152,14 +152,14 @@ CREATE OR ALTER PROCEDURE getSentRequests
     @UserID INT
 AS
 BEGIN
-    SELECT 
+    SELECT
         ReceiverID AS FriendID,
         U.Username,
         U.FirstName,
         U.LastName,
         F.Status
     FROM Friends F
-    INNER JOIN Users U ON F.ReceiverID = U.UserID
+        INNER JOIN Users U ON F.ReceiverID = U.UserID
     WHERE F.SenderID = @UserID and Status = 'Pending'
 END;
 GO
@@ -167,7 +167,7 @@ CREATE OR ALTER PROCEDURE getFriendsList
     @UserID INT
 AS
 BEGIN
-    SELECT 
+    SELECT
         CASE 
             WHEN F.SenderID = @UserID THEN F.ReceiverID
             ELSE F.SenderID
@@ -176,9 +176,9 @@ BEGIN
         U.FirstName,
         U.LastName
     FROM Friends F
-    INNER JOIN Users U ON 
-        (F.SenderID = @UserID AND U.UserID = F.ReceiverID) OR 
-        (F.ReceiverID = @UserID AND U.UserID = F.SenderID)
+        INNER JOIN Users U ON 
+        (F.SenderID = @UserID AND U.UserID = F.ReceiverID) OR
+            (F.ReceiverID = @UserID AND U.UserID = F.SenderID)
     WHERE F.Status = 'Accepted';
 END;
 
@@ -189,6 +189,36 @@ CREATE OR ALTER PROCEDURE removeFriend
 AS
 BEGIN
     DELETE FROM Friends
-    WHERE (SenderID = @UserID AND ReceiverID = @FriendID) OR 
-          (SenderID = @FriendID AND ReceiverID = @UserID);
+    WHERE (SenderID = @UserID AND ReceiverID = @FriendID) OR
+        (SenderID = @FriendID AND ReceiverID = @UserID);
 END;
+GO
+CREATE OR ALTER PROCEDURE newGroup
+    @UserID INT,
+    @GroupName VARCHAR(100),
+    @Description Text
+AS
+INSERT INTO Groups
+    (GroupName, Description, CreatedBy)
+VALUES
+    ( @GroupName, @Description, @UserID );
+DECLARE @GroupID INT;
+SELECT @GroupID = GroupID
+from Groups
+WHERE GroupName = @GroupName;
+INSERT INTO GroupMembers
+    (GroupID,UserID,Role)
+VALUES
+    ( @GroupID, @UserID, 'Admin' );
+    
+GO
+CREATE OR ALTER PROCEDURE insertGroupMember
+    @GroupID Int,
+    @UserID Int
+AS
+BEGIN
+    INSERT INTO GroupMembers
+        (GroupID,UserID,Role)
+    VALUES
+        ( @GroupID, @UserID, 'Member')
+END
