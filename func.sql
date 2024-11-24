@@ -21,10 +21,10 @@ CREATE OR ALTER FUNCTION retriveName(@UserID INT)
 RETURNS VARCHAR(100)
 AS
 BEGIN
-RETURN
+    RETURN
     (SELECT FirstName + ' ' + LastName
-from Users
-WHERE UserID=@UserID)
+    from Users
+    WHERE UserID=@UserID)
 END;
 
 
@@ -82,7 +82,9 @@ GO
 CREATE OR ALTER FUNCTION getUserPost(@UserID INT)
 RETURNS TABLE
 AS
-RETURN( SELECT PostID,Content,CreatedAt from Posts WHERE UserID = @UserID );
+RETURN( SELECT PostID, Content, CreatedAt
+from Posts
+WHERE UserID = @UserID );
 
 
 GO
@@ -91,8 +93,64 @@ CREATE OR ALTER FUNCTION getComments(@PostID INT)
 RETURNS INT
 AS
 BEGIN
-RETURN(SELECT COUNT(UserID) from Comments WHERE PostID = @PostID AND UserID IS NOT NULL)
+    RETURN(SELECT COUNT(UserID)
+    from Comments
+    WHERE PostID = @PostID AND UserID IS NOT NULL)
 END
 
+GO
+CREATE OR ALTER FUNCTION getLikes(@PostID INT)
+RETURNS INT
+AS
+BEGIN
+    RETURN(SELECT COUNT(UserID)
+    from Likes
+    WHERE PostID = @PostID AND UserID IS NOT NULL)
+END
 
+GO
+CREATE OR ALTER FUNCTION getPostLikes
+(@PostID INT)
+RETURNS TABLE
+AS
+RETURN(
+    SELECT Users.Username
+FROM Likes
+    JOIN Users ON Likes.UserID = Users.UserID
+WHERE Likes.PostID = @PostID);
+
+GO
+
+CREATE OR ALTER FUNCTION checkUserLikedPost (@PostID INT, @UserID INT)
+RETURNS TABLE
+AS
+    RETURN (
+        SELECT * FROM Likes WHERE PostID = @PostID AND UserID = @UserID
+    )
+
+GO
+
+CREATE OR ALTER FUNCTION getFriendship(@UserID INT , @FriendUserID Int)
+RETURNS TABLE
+AS
+    RETURN (
+        SELECT SenderID,
+            ReceiverID,
+            Status FROM Friends WHERE (SenderID = @UserID AND ReceiverID = @FriendUserID) OR (SenderID = @FriendUserID AND ReceiverID = @UserID)
+    )
+
+GO
+CREATE OR ALTER FUNCTION getPendingFriendRequests(@UserID INT)
+RETURNS TABLE
+AS
+RETURN (
+ SELECT 
+        SenderID AS FriendID,
+        U.Username,
+        U.FirstName,
+        U.LastName
+    FROM Friends F
+    INNER JOIN Users U ON F.SenderID = U.UserID
+    WHERE F.ReceiverID = @UserID AND F.Status = 'Pending'
+)
 GO

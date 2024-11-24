@@ -54,13 +54,14 @@ CREATE INDEX idx_Post_UserPostID
 On Posts (UserID,PostID)
 
 
-CREATE TABLE Likes (
+CREATE TABLE Likes
+(
     LikeID INT PRIMARY KEY IDENTITY(1,1),
-    UserID INT NULL,  -- Allow NULLs
+    UserID INT NULL,
     PostID INT NOT NULL,
     LikedAt DATETIME NOT NULL DEFAULT GETDATE(),
     FOREIGN KEY (UserID) REFERENCES Users(UserID) ,
-    FOREIGN KEY (PostID) REFERENCES Posts(PostID)  
+    FOREIGN KEY (PostID) REFERENCES Posts(PostID)
 );
 
 
@@ -80,14 +81,15 @@ CREATE INDEX idx_Likes_UserLikesID
 On Likes (UserID,LikeID)
 
 
-CREATE TABLE Comments (
+CREATE TABLE Comments
+(
     CommentID INT PRIMARY KEY IDENTITY(1,1),
     PostID INT NULL,
     UserID INT NULL,
     Content TEXT NOT NULL,
     CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
     FOREIGN KEY (PostID) REFERENCES Posts(PostID) ,
-    FOREIGN KEY (UserID) REFERENCES Users(UserID) 
+    FOREIGN KEY (UserID) REFERENCES Users(UserID)
 );
 
 CREATE INDEX idx_Comments_PostID
@@ -105,7 +107,24 @@ On Comments (UserID,PostID)
 CREATE INDEX idx_Comments_UserCommentsID
 On Comments (UserID,CommentID)
 
+CREATE TABLE Friends (
+    SenderID INT NOT NULL,
+    ReceiverID INT NOT NULL,
+    Status VARCHAR(20) NOT NULL DEFAULT 'Pending' CHECK (Status IN ('Pending', 'Accepted', 'Rejected')),
+    FriendshipDate DATETIME NULL,
+    PRIMARY KEY (SenderID , ReceiverID),
+    FOREIGN KEY (SenderID) REFERENCES Users(UserID),
+    FOREIGN KEY (ReceiverID) REFERENCES Users(UserID)
+)
 
+CREATE INDEX idx_FRIENDS_SenderID
+On Friends (SenderID)
+
+CREATE INDEX idx_FRIENDS_ReceiverID
+On Friends (ReceiverID)
+
+CREATE INDEX idx_FRIENDS_SR
+On Friends (SenderID,ReceiverID)
 
 
 
