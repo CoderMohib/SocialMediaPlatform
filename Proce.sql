@@ -222,3 +222,95 @@ BEGIN
     VALUES
         ( @GroupID, @UserID, 'Member')
 END
+
+GO
+CREATE OR ALTER PROCEDURE exitGroup
+    @UserID INT,
+    @GroupID INT
+AS
+BEGIN
+    DELETE from GroupMembers where GroupID = @GroupID AND UserID = @UserID
+END
+GO
+CREATE OR ALTER PROCEDURE inputGroupPosts
+    @UserID INT,
+    @Content NVARCHAR(MAX),
+    @GroupID INT
+AS
+INSERT INTO GroupPosts
+    (UserID,Content,GroupID)
+VALUES
+    (@UserID, @Content, @GroupID);
+
+GO
+CREATE OR ALTER PROCEDURE getGroupPosts
+    @GroupID INT
+AS
+BEGIN
+    SELECT gp.GroupPostID, (Select GroupName
+        from Groups
+        where GroupID = @GroupID) AS GroupName, gp.Content ,
+        (Select FirstName + ' ' + LastName
+        from Users
+        where UserID = gp.UserID) AS UserName,
+        (Select COUNT(GroupLikeID)
+        from GroupLikes gl
+        Where gl.GroupPostID = gp.GroupPostID ) AS NumLikes,
+        (Select COUNT(GroupCommentID)
+        from GroupComments gc
+        Where gc.GroupPostID = gp.GroupPostID ) AS NumComments
+    from GroupPosts gp
+    WHERE GroupID = @GroupID
+    ORDER BY PostDate DESC
+END
+GO
+CREATE OR ALTER PROCEDURE setGroupPostlikes
+    @UserID INT,
+    @PostID INT,
+    @GroupID INT
+AS
+BEGIN
+    INSERT INTO GroupLikes
+        (GroupID,UserID,GroupPostID)
+    VALUES(@GroupID, @UserID, @PostID)
+END
+GO
+CREATE OR ALTER PROCEDURE setGroupPostComments
+    @UserID INT,
+    @PostID INT,
+    @GroupID INT,
+    @Content TEXT
+AS
+BEGIN
+    INSERT INTO GroupComments
+        (GroupID,UserID,GroupPostID,Content)
+    VALUES(@GroupID, @UserID, @PostID, @Content)
+END
+
+GO
+
+CREATE OR ALTER PROCEDURE getCommentGroupPost
+    @PostID INT,
+    @GroupID INT
+AS
+BEGIN
+    SELECT (Select (FirstName + ' '+ LastName)
+        from Users
+        where Users.UserID = GroupComments.UserID) AS FullName,
+        Content, CreatedAt
+    From GroupComments
+    Where GroupPostID = @PostID AND GroupID = @GroupID
+    ORDER BY CreatedAt DESC
+END
+
+GO
+
+CREATE OR ALTER PROCEDURE deleteGroupPost 
+@PostID INT,
+@GroupID INT
+AS
+BEGIN
+DELETE From GroupLikes WHERE GroupPostID = @PostID AND GroupID = @GroupID;
+DELETE From GroupComments WHERE GroupPostID = @PostID AND GroupID = @GroupID;
+DELETE FROM GroupPosts WHERE GroupPostID= @PostID AND GroupID = @GroupID;
+END

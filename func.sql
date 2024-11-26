@@ -178,7 +178,45 @@ CREATE OR ALTER FUNCTION specificGroupsOfUser
 RETURNS TABLE
 AS
 RETURN(
-    SELECT G.GroupID, G.GroupName , (SELECT UserID from Users WHERE UserID = G.CreatedBy) AS [ADMIN ID]
+    SELECT G.GroupID, G.GroupName , (SELECT UserID
+    from Users
+    WHERE UserID = G.CreatedBy) AS [ADMIN ID]
 from Groups G INNER join GroupMembers GM on GM.GroupID = G.GroupID AND GM.UserID = @UserID
      )
 GO
+CREATE OR ALTER FUNCTION getMembers(@GroupID INT)
+RETURNS TABLE
+AS 
+RETURN(
+    SELECT u.UserID, u.UserName , (u.FirstName + ' ' + u.LastName) AS FullName
+FROM Users u
+    INNER JOIN GroupMembers GM on GM.UserID = u.UserID
+where GM.GroupID = @GroupID
+)
+GO
+CREATE OR ALTER FUNCTION getTotalMembers(@GroupID INT)
+RETURNS INT
+AS 
+BEGIN
+    DECLARE @TMEM INT
+    SELECT @TMEM = COUNT(UserID)
+    from GroupMembers
+    WHERE GroupID = @GroupID
+    RETURN @TMEM
+END
+
+GO
+
+CREATE OR ALTER FUNCTION getUserLike(@UserID INT,
+    @PostID INT,
+    @GroupID INT)
+RETURNS TABLE
+AS 
+RETURN(
+    SELECT UserID
+From GroupLikes
+Where GroupPostID = @PostID AND UserID = @UserID AND GroupID = @GroupID
+)
+
+GO
+

@@ -143,11 +143,14 @@ def CreatePost(conn,userID):
         check = input("Would You like to post it?(Y/N): ")
         if check.lower() == "n":
             break
-        else:
+        elif check.lower() == "y":
             cursor.execute("Exec inputPosts ?,?", (userID,content))
             print("Post Created SuccessFully!")
             time.sleep(2)
             conn.commit()
+            break
+        else:
+            print("Invalid input. Please try again.")
             break
 
 def manageFriends(conn, userID):
@@ -262,14 +265,260 @@ def manageFriends(conn, userID):
         else:
             print("Invalid input. Please try again.")
             time.sleep(1.5)
-def manageGroupsForALL(conn,userID,groupsJoin,CheckInp):
+def manageGroupsForMember(conn,userID,groupsJoin,CheckInp):
     cursor = conn.cursor()
     while (True):
         clear_screen()
-        if groupsJoin[CheckInp-1][2] == userID:
-            print("HI")
+        print("1. Post in Group")
+        print("2. Show Groups Post")
+        print("3. Show Group Members")
+        print("4. Leave Group")
+        print("5. Exit")
+        userinput = input("Enter Option: ")
+        if userinput in ['1','2','3','4','5']:
+            if userinput == '1':
+                while(True):
+                    cursor=conn.cursor()
+                    content=input("Enter Content of the post: ")
+                    check = input("Would You like to post it?(Y/N): ")
+                    if check.lower() == "n":
+                        break
+                    elif check.lower() == "y":
+                        cursor.execute("Exec inputGroupPosts ?,?,?", (userID,content,groupsJoin[CheckInp-1][0]))
+                        print("Post Created SuccessFully!")
+                        time.sleep(2)
+                        conn.commit()
+                        break
+                    else:
+                        print("Invalid Input!")
+                        time.sleep(1.5)
+                        break
+            elif userinput == "2":
+                check = 0
+                while(True):
+                    takeInput = ''
+                    clear_screen()
+                    cursor.execute("Exec getGroupPosts ?", (groupsJoin[CheckInp-1][0],))
+                    posts = cursor.fetchall()
+                    print(f"Group Name: {posts[0][1]}")
+                    if len(posts) != 0:
+                        for i in range(len(posts)):
+                            clear_screen()
+                            print(f"Post# {i+1} ")
+                            print(f"User: {posts[i][3]}")
+                            print(f"Content: {posts[i][2]}")
+                            print(f"Likes: {posts[i][4]}  Commets: {posts[i][5]}")
+                            print()
+                            if check == i:
+                                print("1. Like This Post ")
+                                print("2. Comment on this Post")
+                                print("3. See Comments")
+                                print("4. Continue..")
+                                print("5. Go Back")
+                                takeInput = input()
+                                if takeInput == '4':
+                                    check+=1
+                                elif takeInput == '1':
+                                    x = input('Would You Want to like this post?(Y/N): ')
+                                    if x.lower() == "y":
+                                        cursor.execute("Select * from getUserLike(?,?,?)",(userID,posts[i][0],groupsJoin[CheckInp-1][0]))
+                                        res = cursor.fetchone()
+                                        if res:
+                                           pass
+                                        else:
+                                            cursor.execute("Exec setGroupPostlikes ?,?,?",(userID,posts[i][0],groupsJoin[CheckInp-1][0]))
+                                            conn.commit()
+                                        break
+                                    else:
+                                        break
+                                elif takeInput == '2':
+                                    x = input("Enter a comment: ").strip()
+                                    if x:
+                                        cursor.execute("Exec setGroupPostComments ?,?,?,?",(userID,posts[i][0],groupsJoin[CheckInp-1][0],x))
+                                        conn.commit()
+                                        break
+                                elif takeInput == '3':
+                                    if posts[i][5] != 0:
+                                        cursor.execute("Exec getCommentGroupPost ?,?",(posts[i][0],groupsJoin[CheckInp-1][0]))
+                                        comments = cursor.fetchall()
+                                        for i in range(len(comments)):
+                                            print(f"{i+1}. UserName: {comments[i][0]}")
+                                            print(f"Comment: {comments[i][1]}      Time: {comments[i][2]}")
+                                            print()
+                                    else:
+                                        print("No Comment to show!")
+                                    input("Enter to continue....")
+                                    break
+                                elif takeInput == '5':
+                                    break
+                                else:
+                                    print("Invalid Input!")
+                                    time.sleep(1.6)
+                                    break
+                        else:
+                            break
+                        if  takeInput ==  '5':
+                            break     
+                    else:
+                        print("No Posts in group!")
+                        input("Press Enter to Continue....")
+            elif userinput == "3":
+                cursor.execute("Select * from getMembers(?)",(groupsJoin[CheckInp-1][0]))
+                members = cursor.fetchall()
+                cursor.execute("Select dbo.getTotalMembers(?)",(groupsJoin[CheckInp-1][0]))
+                tmembers=cursor.fetchone()
+                print(f"Total Members: {tmembers[0]}" )
+                if tmembers[0] != 0:
+                    for i in range(len(members)):
+                        print(f"{i+1}. userName: {members[i][1]}  Name: {members[i][2]}")
+                else:
+                    print("No members Yet!")
+                input("Press Enter to continue...")
+
+            elif userinput == '4':
+                x = input("You want to exit the group!(Y/N): ")
+                if x.lower() == "y":
+                    cursor.execute("Exec exitGroup ?,?",(userID,groupsJoin[CheckInp-1][0]))
+                    conn.commit()
+                    print("Group left!")
+                    time.sleep(1.5)
+                    return
+            elif userinput == '5':
+                break
         else:
-            break
+            print("Inavlid Input!")
+            time.sleep(1.7)
+            
+def manageGroupsForAdmin(conn,userID,groupsJoin,CheckInp):
+    cursor = conn.cursor()
+    while (True):
+        clear_screen()
+        print("1. Post in Group")
+        print("2. Show Groups Post")
+        print("3. Show Group Members")
+        print("4. Leave Group")
+        print("5. Exit")
+        userinput = input("Enter Option: ")
+        if userinput in ['1','2','3','4','5']:
+            if userinput == '1':
+                while(True):
+                    cursor=conn.cursor()
+                    content=input("Enter Content of the post: ")
+                    check = input("Would You like to post it?(Y/N): ")
+                    if check.lower() == "n":
+                        break
+                    elif check.lower() == "y":
+                        cursor.execute("Exec inputGroupPosts ?,?,?", (userID,content,groupsJoin[CheckInp-1][0]))
+                        print("Post Created SuccessFully!")
+                        time.sleep(2)
+                        conn.commit()
+                        break
+                    else:
+                        print("Invalid Input!")
+                        time.sleep(1.5)
+                        break
+            elif userinput == "2":
+                check = 0
+                while(True):
+                    takeInput = ''
+                    clear_screen()
+                    cursor.execute("Exec getGroupPosts ?", (groupsJoin[CheckInp-1][0],))
+                    posts = cursor.fetchall()
+                    print(f"Group Name: {posts[0][1]}")
+                    if len(posts) != 0:
+                        for i in range(len(posts)):
+                            clear_screen()
+                            print(f"Post# {i+1} ")
+                            print(f"User: {posts[i][3]}")
+                            print(f"Content: {posts[i][2]}")
+                            print(f"Likes: {posts[i][4]}  Commets: {posts[i][5]}")
+                            print()
+                            if check == i:
+                                print("1. Like This Post ")
+                                print("2. Comment on this Post")
+                                print("3. See Comments")
+                                print("4. Continue..")
+                                print("5. Delete This Post")
+                                print("6. Go Back")
+                                takeInput = input()
+                                if takeInput == '4':
+                                    check+=1
+                                elif takeInput == '1':
+                                    x = input('Would You Want to like this post?(Y/N): ')
+                                    if x.lower() == "y":
+                                        cursor.execute("Select * from getUserLike(?,?,?)",(userID,posts[i][0],groupsJoin[CheckInp-1][0]))
+                                        res = cursor.fetchone()
+                                        if res:
+                                           pass
+                                        else:
+                                            cursor.execute("Exec setGroupPostlikes ?,?,?",(userID,posts[i][0],groupsJoin[CheckInp-1][0]))
+                                            conn.commit()
+                                        break
+                                    else:
+                                        break
+                                elif takeInput == '2':
+                                    x = input("Enter a comment: ").strip()
+                                    if x:
+                                        cursor.execute("Exec setGroupPostComments ?,?,?,?",(userID,posts[i][0],groupsJoin[CheckInp-1][0],x))
+                                        conn.commit()
+                                        break
+                                elif takeInput == '3':
+                                    if posts[i][5] != 0:
+                                        cursor.execute("Exec getCommentGroupPost ?,?",(posts[i][0],groupsJoin[CheckInp-1][0]))
+                                        comments = cursor.fetchall()
+                                        for i in range(len(comments)):
+                                            print(f"{i+1}. UserName: {comments[i][0]}")
+                                            print(f"Comment: {comments[i][1]}      Time: {comments[i][2]}")
+                                            print()
+                                    else:
+                                        print("No Comment to show!")
+                                    input("Enter to continue....")
+                                    break
+                                elif takeInput == '5':
+                                    cursor.execute("Exec deleteGroupPost ?,?",(posts[i][0],groupsJoin[CheckInp-1][0]))
+                                    conn.commit()
+                                    print("Successfully deleted")
+                                    time.sleep(1.7)
+                                    break
+                                elif takeInput == '6':
+                                    break
+                                else:
+                                    print("Invalid Input!")
+                                    time.sleep(1.6)
+                                    break
+                        else:
+                            break
+                        if  takeInput ==  '6':
+                            break     
+                    else:
+                        print("No Posts in group!")
+                        input("Press Enter to Continue....")
+            elif userinput == "3":
+                cursor.execute("Select * from getMembers(?)",(groupsJoin[CheckInp-1][0]))
+                members = cursor.fetchall()
+                cursor.execute("Select dbo.getTotalMembers(?)",(groupsJoin[CheckInp-1][0]))
+                tmembers=cursor.fetchone()
+                print(f"Total Members: {tmembers[0]}" )
+                if tmembers[0] != 0:
+                    for i in range(len(members)):
+                        print(f"{i+1}. userName: {members[i][1]}  Name: {members[i][2]}")
+                else:
+                    print("No members Yet!")
+                input("Press Enter to continue...")
+
+            elif userinput == '4':
+                x = input("You want to exit the group!(Y/N): ")
+                if x.lower() == "y":
+                    cursor.execute("Exec exitGroup ?,?",(userID,groupsJoin[CheckInp-1][0]))
+                    conn.commit()
+                    print("Group left!")
+                    time.sleep(1.5)
+                    return
+            elif userinput == '5':
+                break
+        else:
+            print("Inavlid Input!")
+            time.sleep(1.7)
 
 def manageGroups(conn,userID):
     cursor = conn.cursor()
@@ -318,7 +567,10 @@ def manageGroups(conn,userID):
                         
                     CheckInp = int(input("Enter Group Number to view: "))
                     if 1 <= CheckInp <= len(groupsJoin):
-                        manageGroupsForALL(conn,userID,groupsJoin,CheckInp)
+                        if not(groupsJoin[CheckInp-1][2] == userID):
+                            manageGroupsForMember(conn,userID,groupsJoin,CheckInp)
+                        else:
+                            manageGroupsForAdmin(conn,userID,groupsJoin,CheckInp)
                     else:
                         print("Invalid Input!")
                 else:

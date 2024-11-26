@@ -144,6 +144,40 @@ CREATE TABLE GroupMembers (
     FOREIGN KEY (UserID) REFERENCES Users(UserID)
 );
 
+CREATE TABLE GroupPosts (
+    GroupPostID INT IDENTITY(1,1) PRIMARY KEY ,
+    GroupID INT NOT NULL,
+    UserID INT NOT NULL,
+    Content NVARCHAR(MAX) NULL,
+    PostDate DATETIME NOT NULL DEFAULT GETDATE(),
+    FOREIGN KEY (GroupID) REFERENCES Groups(GroupID),
+    FOREIGN KEY (UserID) REFERENCES Users(UserID)
+);
+
+CREATE TABLE GroupLikes (
+    GroupLikeID INT IDENTITY(1,1) PRIMARY KEY ,
+    GroupID INT NOT NULL,
+    UserID INT NOT NULL,
+    GroupPostID INT NOT NULL,
+    PostDate DATETIME NOT NULL DEFAULT GETDATE(),
+    FOREIGN KEY (GroupID) REFERENCES Groups(GroupID),
+    FOREIGN KEY (UserID) REFERENCES Users(UserID),
+    FOREIGN KEY (GroupPostID) REFERENCES GroupPosts(GroupPostID)
+);
+
+CREATE TABLE GroupComments
+(
+    GroupCommentID INT PRIMARY KEY IDENTITY(1,1),
+    GroupPostID INT NULL,
+    GroupID INT NOT NULL,
+    UserID INT NOT NULL,
+    Content TEXT NOT NULL,
+    CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
+    FOREIGN KEY (GroupPostID) REFERENCES GroupPosts(GroupPostID) ,
+    FOREIGN KEY (UserID) REFERENCES Users(UserID),
+    FOREIGN KEY (GroupID) REFERENCES Groups(GroupID)
+);
+
 
 
 
