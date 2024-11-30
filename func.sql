@@ -82,9 +82,9 @@ GO
 CREATE OR ALTER FUNCTION getUserPost(@UserID INT)
 RETURNS TABLE
 AS
-RETURN( SELECT PostID, Content, CreatedAt
-from Posts
-WHERE UserID = @UserID );
+RETURN( SELECT p.PostID,(u.FirstName + ' ' + u.LastName) AS FullName, p.Content, p.CreatedAt , p.NoOfLikes,p.NoOfComments
+from Posts p INNER JOIN Users u on u.UserID = p.UserID
+WHERE p.UserID = @UserID );
 
 
 GO
@@ -158,13 +158,15 @@ FROM Friends F
 WHERE F.ReceiverID = @UserID AND F.Status = 'Pending'
 )
 GO
+
+-----groups ke func
 CREATE OR ALTER FUNCTION getALLGroup()
 RETURNS TABLE
 AS
 RETURN(SELECT *
 from Groups)
 GO
-
+-- Ke agar user kisi alread group mai ho aur wo us mai dobara join karna ki kosish kra
 CREATE OR ALTER FUNCTION getGroupMembers(@GroupID INT,@UserID INT)
 RETURNS TABLE
 AS
@@ -180,15 +182,16 @@ AS
 RETURN(
     SELECT G.GroupID, G.GroupName , (SELECT UserID
     from Users
-    WHERE UserID = G.CreatedBy) AS [ADMIN ID]
+    WHERE UserID = G.CreatedBy) AS [ADMIN ID], Role
 from Groups G INNER join GroupMembers GM on GM.GroupID = G.GroupID AND GM.UserID = @UserID
      )
 GO
+
 CREATE OR ALTER FUNCTION getMembers(@GroupID INT)
 RETURNS TABLE
 AS 
 RETURN(
-    SELECT u.UserID, u.UserName , (u.FirstName + ' ' + u.LastName) AS FullName
+    SELECT u.UserID, u.UserName , (u.FirstName + ' ' + u.LastName) AS FullName, GM.Role
 FROM Users u
     INNER JOIN GroupMembers GM on GM.UserID = u.UserID
 where GM.GroupID = @GroupID
@@ -220,3 +223,11 @@ Where GroupPostID = @PostID AND UserID = @UserID AND GroupID = @GroupID
 
 GO
 
+---sari groups ki pos ko le rha hai kisi specific member of he group ki
+CREATE OR ALTER FUNCTION getMemGroupPosts(@UserID INT,
+@GroupID INT)
+RETURNS TABLE
+AS 
+RETURN(
+    SELECT GroupPostID from GroupPosts where UserID= @UserID AND GroupID = @GroupID
+)

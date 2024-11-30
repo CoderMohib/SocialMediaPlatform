@@ -49,11 +49,7 @@ UPDATE Users
 SET FirstName=@Fname, LastName = @Lname, UpdatedAt = GETDATE()
 WHERE UserID= @UserID
 GO
-CREATE OR ALTER PROCEDURE DelUser
-    @UserID INT
-AS
-DELETE FROM Users WHERE UserID = @UserID;
-GO
+
 
 CREATE OR ALTER PROCEDURE inputPosts
     @UserID INT,
@@ -64,6 +60,7 @@ INSERT INTO Posts
 VALUES
     (@UserID, @Content);
 GO
+
 CREATE OR ALTER PROCEDURE DelPost
     @UserID INT
 AS
@@ -174,7 +171,8 @@ BEGIN
         END AS FriendID,
         U.Username,
         U.FirstName,
-        U.LastName
+        U.LastName,
+        U.NoOfFriends
     FROM Friends F
         INNER JOIN Users U ON 
         (F.SenderID = @UserID AND U.UserID = F.ReceiverID) OR
@@ -205,7 +203,7 @@ VALUES
 DECLARE @GroupID INT;
 SELECT @GroupID = GroupID
 from Groups
-WHERE GroupName = @GroupName;
+WHERE CreatedBy = @UserID;
 INSERT INTO GroupMembers
     (GroupID,UserID,Role)
 VALUES
@@ -223,14 +221,8 @@ BEGIN
         ( @GroupID, @UserID, 'Member')
 END
 
-GO
-CREATE OR ALTER PROCEDURE exitGroup
-    @UserID INT,
-    @GroupID INT
-AS
-BEGIN
-    DELETE from GroupMembers where GroupID = @GroupID AND UserID = @UserID
-END
+
+
 GO
 CREATE OR ALTER PROCEDURE inputGroupPosts
     @UserID INT,
@@ -253,12 +245,8 @@ BEGIN
         (Select FirstName + ' ' + LastName
         from Users
         where UserID = gp.UserID) AS UserName,
-        (Select COUNT(GroupLikeID)
-        from GroupLikes gl
-        Where gl.GroupPostID = gp.GroupPostID ) AS NumLikes,
-        (Select COUNT(GroupCommentID)
-        from GroupComments gc
-        Where gc.GroupPostID = gp.GroupPostID ) AS NumComments
+        TotalLikes,
+        TotalComments
     from GroupPosts gp
     WHERE GroupID = @GroupID
     ORDER BY PostDate DESC
@@ -305,12 +293,45 @@ END
 
 GO
 
-CREATE OR ALTER PROCEDURE deleteGroupPost 
-@PostID INT,
-@GroupID INT
+
+CREATE OR ALTER PROCEDURE deleteMember
+    @UserID INT,
+    @GroupID INT
 AS
 BEGIN
-DELETE From GroupLikes WHERE GroupPostID = @PostID AND GroupID = @GroupID;
-DELETE From GroupComments WHERE GroupPostID = @PostID AND GroupID = @GroupID;
-DELETE FROM GroupPosts WHERE GroupPostID= @PostID AND GroupID = @GroupID;
+    DELETE FROM GroupMembers WHERE UserID=@UserID AND @GroupID=GroupID
 END
+GO
+
+
+
+-----------------------
+--Get chat
+CREATE OR ALTER PROCEDURE getChat @SenderID INT , @ReceiverID INT 
+AS
+BEGIN
+SELECT MessageID, SenderID, ReceiverID, Content, SentAt, IsRead
+FROM Messages
+WHERE (SenderID = @SenderID AND ReceiverID = @ReceiverID)
+   OR (SenderID = @ReceiverID AND ReceiverID = @SenderID)
+ORDER BY SentAt ASC
+END
+
+GO
+CREATE OR ALTER PROCEDURE updateMessageRead @UserID INT, @ChatPartnerID INT
+AS
+BEGIN
+UPDATE Messages
+SET IsRead = 1
+WHERE ReceiverID = @UserID AND SenderID = @ChatPartnerID AND IsRead = 0;
+END;
+
+GO
+
+CREATE OR ALTER PROCEDURE newMsg @UserID INT, @ChatPartnerID INT, @Content NVARCHAR(MAX)
+AS 
+BEGIN
+INSERT INTO Messages (SenderID, ReceiverID, Content)
+VALUES (@UserID, @ChatPartnerID, @Content)
+END
+GO

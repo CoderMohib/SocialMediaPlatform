@@ -1,4 +1,7 @@
-USE SocialMediaPlatform;
+USE SocialMediaPlatform;     
+-- Select rows from a Table or View 'TableOrViewName' in schema 'SchemaName'
+GO
+
 -- Insert Users
 INSERT INTO Users (Username, Email, PasswordF, FirstName, LastName, DateOfBirth)
 VALUES 
@@ -25,7 +28,7 @@ VALUES
 (4, 2),
 (2, 3),
 (3, 4);
-
+UPDATE GroupMembers SET Role = 'Admin' WHERE UserID = 1
 -- Insert Comments
 INSERT INTO Comments (PostID, UserID, Content)
 VALUES 

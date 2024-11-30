@@ -48,28 +48,67 @@ def display_social_media_platform_page():
     print("\n")
     time.sleep(2)
     clear_screen()
+def Chat(conn,userID):
+    cursor = conn.cursor()
+    while(True):
+        clear_screen()
+        cursor.execute("EXEC getFriendsList ?", (userID,))
+        friends = cursor.fetchall()
+        if friends:
+            print(f"Your Friends: {friends[0][4]} ")
+            for i in range(len(friends)):
+                    print(f"{i+1}. UserName: {friends[i][1]} | Name: {friends[i][2]} {friends[i][3]}")
+            x = int(input("Enter Number to chat: "))
+            if 1 <= x <= len(friends):
+                cursor.execute("Exec getChat ?,?",(userID,friends[x-1][0]))
+                messages = cursor.fetchall()
+                if messages:
+                    for i in messages:
+                        if i[1] == userID:
+                            print(f"               {i[3]} - You")
+                        else:
+                            print(f"Friend- {i[3]}")
+                    cursor.execute("Exec updateMessageRead ?,?",(userID,friends[x-1][0]))
+                    conn.commit()
+                else:
+                    print("No message Yet!")
+                newmsg= input("Enter New Message: ")
+                cursor.execute("Exec newMsg ?,?,?",(userID,friends[x-1][0],newmsg))
+                conn.commit()
+                x = input("Want to exit(Y/N):")
+                if x.lower()=="y":
+                    break
+            else:
+                print("Invalid Input!")
+                input("Press Enter to Continue.....")
+                
+        else:
+            print("No friends yet.")
+            input("Press Enter to continue...")
+            break
+
 def showTimeline(conn, userID):
     cursor = conn.cursor() 
     while True:
+        clear_screen()
+        cursor.execute("Select * from retriveDataSUsers(?)",(userID,))
+        userDetail = cursor.fetchone()
+        print(f"UserName: {userDetail[1]}")
+        print(f"Profile Name: {userDetail[6]} {userDetail[7]}")
+        print(f"Date of Birth: {userDetail[8]}")
+        print(f"Total Post: {userDetail[10]}")
+        print(f"Total Friends: {userDetail[11]}")
+        print()
         cursor.execute("SELECT * FROM getUserPost(?) ORDER BY CreatedAt DESC", (userID,))
         posts = cursor.fetchall()
-        clear_screen()
         if posts:
             for i, post in enumerate(posts, 1):
-                cursor.execute("SELECT dbo.retriveName(?)", (userID,))
-                userName = cursor.fetchone()
                 print(f"Post #{i}")
-                print(f"Name: {userName[0]}")
-                print(f"Created At: {post[2]}")
-                print(f"Post Content: {post[1]}")  
-                
-                cursor.execute("SELECT dbo.getLikes(?)", (post[0],))
-                like_count = cursor.fetchone()
-                print(f"Likes: {like_count[0]}", end=" ")
-
-                cursor.execute("SELECT dbo.getComments(?)", (post[0],))
-                comment_count = cursor.fetchone()
-                print(f"Comments: {comment_count[0]}")
+                print(f"Name: {post[1]}")
+                print(f"Created At: {post[3]}")
+                print(f"Post Content: {post[2]}")  
+                print(f"Likes: {post[4]}", end=" ")
+                print(f"Comments: {post[5]}")
                 print()
 
             while True:
@@ -174,21 +213,29 @@ def manageFriends(conn, userID):
                         print("Invalid Input!")
                         time.sleep(1.5)
                 else:
-                    cursor.execute("Select * from getFriendship(? , ?)",userID, friend_user_id)
-                    x = cursor.fetchone()
-                    if x:
-                        if x[2] == "Pending":
-                            if x[0] == userID:  # Current user is the sender
-                                print("Friend request is already in Pending!")
-                            else:  # Current user is the receiver
-                                print("Friend request already sent to you. Please accept or reject.")
-                        elif x[2] == "Accepted":
-                            print("You are already friends!")
+                    try:
+                        cursor.execute("Select * from getFriendship(? , ?)",userID, friend_user_id)
+                        x = cursor.fetchone()
+                    except Exception as e:
+                        print(f"Error: {e}")
                     else:
-                        cursor.execute("EXEC sendFriendRequest ?, ?", (userID, friend_user_id))
-                        conn.commit()
-                        print("Friend Request send successfull!")
-                    time.sleep(1.5)
+
+                        if x:
+                            if x[2] == "Pending":
+                                if x[0] == userID:  # Current user is the sender
+                                    print("Friend request is already in Pending!")
+                                else:  # Current user is the receiver
+                                    print("Friend request already sent to you. Please accept or reject.")
+                            elif x[2] == "Accepted":
+                                print("You are already friends!")
+                        else:
+                            try:
+                                cursor.execute("EXEC sendFriendRequest ?, ?", (userID, friend_user_id))
+                                conn.commit()
+                                print("Friend Request send successfull!")
+                            except Exception as e:
+                                print(f"Error: {e}")
+                        time.sleep(1.5)
                     break
 
         # View Pending Friend Requests
@@ -300,8 +347,8 @@ def manageGroupsForMember(conn,userID,groupsJoin,CheckInp):
                     clear_screen()
                     cursor.execute("Exec getGroupPosts ?", (groupsJoin[CheckInp-1][0],))
                     posts = cursor.fetchall()
-                    print(f"Group Name: {posts[0][1]}")
                     if len(posts) != 0:
+                        print(f"Group Name: {posts[0][1]}")
                         for i in range(len(posts)):
                             clear_screen()
                             print(f"Post# {i+1} ")
@@ -362,6 +409,7 @@ def manageGroupsForMember(conn,userID,groupsJoin,CheckInp):
                     else:
                         print("No Posts in group!")
                         input("Press Enter to Continue....")
+                        break
             elif userinput == "3":
                 cursor.execute("Select * from getMembers(?)",(groupsJoin[CheckInp-1][0]))
                 members = cursor.fetchall()
@@ -397,9 +445,10 @@ def manageGroupsForAdmin(conn,userID,groupsJoin,CheckInp):
         print("2. Show Groups Post")
         print("3. Show Group Members")
         print("4. Leave Group")
-        print("5. Exit")
+        print("5. Delete this group")
+        print("6. Exit")
         userinput = input("Enter Option: ")
-        if userinput in ['1','2','3','4','5']:
+        if userinput in ['1','2','3','4','5','6']:
             if userinput == '1':
                 while(True):
                     cursor=conn.cursor()
@@ -424,8 +473,8 @@ def manageGroupsForAdmin(conn,userID,groupsJoin,CheckInp):
                     clear_screen()
                     cursor.execute("Exec getGroupPosts ?", (groupsJoin[CheckInp-1][0],))
                     posts = cursor.fetchall()
-                    print(f"Group Name: {posts[0][1]}")
-                    if len(posts) != 0:
+                    if posts:
+                        print(f"Group Name: {posts[0][1]}")
                         for i in range(len(posts)):
                             clear_screen()
                             print(f"Post# {i+1} ")
@@ -493,18 +542,51 @@ def manageGroupsForAdmin(conn,userID,groupsJoin,CheckInp):
                     else:
                         print("No Posts in group!")
                         input("Press Enter to Continue....")
+                        break
             elif userinput == "3":
-                cursor.execute("Select * from getMembers(?)",(groupsJoin[CheckInp-1][0]))
-                members = cursor.fetchall()
-                cursor.execute("Select dbo.getTotalMembers(?)",(groupsJoin[CheckInp-1][0]))
-                tmembers=cursor.fetchone()
-                print(f"Total Members: {tmembers[0]}" )
-                if tmembers[0] != 0:
-                    for i in range(len(members)):
-                        print(f"{i+1}. userName: {members[i][1]}  Name: {members[i][2]}")
-                else:
-                    print("No members Yet!")
-                input("Press Enter to continue...")
+                temp=0
+                while(True):
+                    cursor.execute("Select * from getMembers(?)",(groupsJoin[CheckInp-1][0]))
+                    members = cursor.fetchall()
+                    cursor.execute("Select dbo.getTotalMembers(?)",(groupsJoin[CheckInp-1][0]))
+                    tmembers=cursor.fetchone()
+                    print(f"Total Members: {tmembers[0]}" )
+                    if tmembers[0] != 0:
+                        takeUser = ''
+                        for i in range(len(members)):
+                            clear_screen()
+                            print(f"{i+1}. userName: {members[i][1]}  Name: {members[i][2]}  Role: {members[i][3]}")
+                            if members[i][3] != "Admin":
+                                print("1. Remove This Member")
+                            print("2. Continue")
+                            print("3. Go Back")
+                            takeUser = input()
+                            if takeUser in ['1','2','3']:
+                                if takeUser == '3':
+                                    break
+                                elif takeUser == '2':
+                                    temp+=1
+                                elif takeUser == '1':
+                                    cursor.execute("Select * from getMemGroupPosts(?,?)",(members[i][0],groupsJoin[CheckInp-1][0]))
+                                    posid = cursor.fetchall()
+                                    for i in range(len(posid)):
+                                        cursor.execute("Exec deleteGroupPost ?,?",(posid[i][0],groupsJoin[CheckInp-1][0]))
+                                        conn.commit()
+                                    cursor.execute("Exec deleteMember ?,?", (members[i][0],groupsJoin[CheckInp-1][0]))
+                                    conn.commit()
+                                    break
+                            else:
+                                print("Invalid Input!")
+                                time.sleep(1.6)
+                                break
+                        else:
+                            break
+                        if takeUser == '3':
+                            break
+                    else:
+                        print("No members Yet!")
+                        input("Press Enter to continue...")
+                        break
 
             elif userinput == '4':
                 x = input("You want to exit the group!(Y/N): ")
@@ -515,6 +597,14 @@ def manageGroupsForAdmin(conn,userID,groupsJoin,CheckInp):
                     time.sleep(1.5)
                     return
             elif userinput == '5':
+                x = input("Do you want this group deleted permanently?(Y/N): ")
+                if x.lower() == "y":
+                    cursor.execute("Exec deleteGroup ?",(groupsJoin[CheckInp-1][0],))
+                    print("Deleted Successfully!")
+                    conn.commit()
+                    input("Press Enter to Continue....")
+                    return
+            elif userinput == '6':
                 break
         else:
             print("Inavlid Input!")
@@ -561,13 +651,12 @@ def manageGroups(conn,userID):
                 cursor.execute("Select * from specificGroupsOfUser(?)",(userID,))
                 groupsJoin = cursor.fetchall()
                 if groupsJoin:
+                    print(f"Total Groups: {len(groupsJoin)}")
                     for i in range (len(groupsJoin)):
-                        print(f"Total Groups: {len(groupsJoin)}")
-                        print(f"Group Number: {i+1} Group Name: {groupsJoin[i][0]}")
-                        
+                        print(f"Group Number: {i+1} Group Name: {groupsJoin[i][1]}")
                     CheckInp = int(input("Enter Group Number to view: "))
                     if 1 <= CheckInp <= len(groupsJoin):
-                        if not(groupsJoin[CheckInp-1][2] == userID):
+                        if not(groupsJoin[CheckInp-1][3] == 'Admin'):
                             manageGroupsForMember(conn,userID,groupsJoin,CheckInp)
                         else:
                             manageGroupsForAdmin(conn,userID,groupsJoin,CheckInp)
@@ -641,9 +730,6 @@ def updateSettings(conn,userID):
                     if check.lower() == "n":
                         break
                     elif check.lower() == "y":
-                        cursor.execute("Exec DelComments ?", (userID,))
-                        cursor.execute("Exec DelLikes ?", (userID,))
-                        cursor.execute("Exec DelPost ?", (userID,))
                         cursor.execute("Exec DelUser ?", (userID,))
                         print("Your Account Has been Deleted SuccessFully!")
                         time.sleep(2)
@@ -665,7 +751,7 @@ def UserOptions(conn,userID):
     while (True):
         clear_screen()
         print(center_text("~" * terminal_width, terminal_width))
-        print("1. Show Feed")
+        print("1. Chat with Friends")
         print("2. Timeline")
         print("3. Create Post")
         print("4. Manage Friends")
@@ -677,7 +763,7 @@ def UserOptions(conn,userID):
         if Userinput in ['1','2','3','4','5','6','7']:
             clear_screen()
             if Userinput == '1':
-                pass
+                Chat(conn,userID)
             elif Userinput == '2':
                 showTimeline(conn,userID)
             elif Userinput == '3':
