@@ -31,10 +31,7 @@ def get_password():
                 password += char.decode('utf-8')
                 print('*', end='', flush=True) 
         print()
-        if len(password) >= 8:
-            return password
-        else:
-            print("Length is Too Small!")
+        return password
 
 def display_social_media_platform_page():
     terminal_width = os.get_terminal_size().columns
@@ -48,6 +45,22 @@ def display_social_media_platform_page():
     print("\n")
     time.sleep(2)
     clear_screen()
+# For database connection
+
+def loadChat(conn,userID,friendID,friendName):
+    cursor= conn.cursor()
+    cursor.execute("Exec getChat ?,?",(userID,friendID))
+    messages = cursor.fetchall()
+    if messages:
+        clear_screen()
+        print(f'Name: {friendName}')
+        for i in messages:
+            if i[1] == userID:        
+                print(f"               {i[3]} - You")
+            else:
+                print(f"Friend- {i[3]}")
+    else:
+        print("No message Yet!")
 def Chat(conn,userID):
     cursor = conn.cursor()
     while(True):
@@ -60,24 +73,25 @@ def Chat(conn,userID):
                     print(f"{i+1}. UserName: {friends[i][1]} | Name: {friends[i][2]} {friends[i][3]}")
             x = int(input("Enter Number to chat: "))
             if 1 <= x <= len(friends):
-                cursor.execute("Exec getChat ?,?",(userID,friends[x-1][0]))
-                messages = cursor.fetchall()
-                if messages:
-                    for i in messages:
-                        if i[1] == userID:
-                            print(f"               {i[3]} - You")
-                        else:
-                            print(f"Friend- {i[3]}")
+                try:
                     cursor.execute("Exec updateMessageRead ?,?",(userID,friends[x-1][0]))
-                    conn.commit()
-                else:
-                    print("No message Yet!")
-                newmsg= input("Enter New Message: ")
-                cursor.execute("Exec newMsg ?,?,?",(userID,friends[x-1][0],newmsg))
-                conn.commit()
-                x = input("Want to exit(Y/N):")
-                if x.lower()=="y":
+                except pyodbc.Error as ex:
+                    sqlstate = ex.args[0]  
+                    message = ex.args[1]   
+                    print(f"SQL State: {sqlstate}, Error Message: {message}")
+                    time.sleep(1.6)
                     break
+                else:
+                    conn.commit()
+                while(True):
+                    loadChat(conn,userID,friends[x-1][0],friends[i][2]+' '+ friends[i][3])
+                    newmsg= input("Enter New Message: ")
+                    cursor.execute("Exec newMsg ?,?,?",(userID,friends[x-1][0],newmsg))
+                    conn.commit()
+                    xs = input("Want to exit(Y/N):")
+                    if xs.lower()=="y":
+                        break
+                break
             else:
                 print("Invalid Input!")
                 input("Press Enter to Continue.....")
@@ -89,90 +103,111 @@ def Chat(conn,userID):
 
 def showTimeline(conn, userID):
     cursor = conn.cursor() 
+    check = 0
+    choice = ''
+    cursor.execute("Select * from retriveDataSUsers(?)",(userID,))
+    userDetail = cursor.fetchone()
     while True:
         clear_screen()
-        cursor.execute("Select * from retriveDataSUsers(?)",(userID,))
-        userDetail = cursor.fetchone()
-        print(f"UserName: {userDetail[1]}")
-        print(f"Profile Name: {userDetail[6]} {userDetail[7]}")
-        print(f"Date of Birth: {userDetail[8]}")
-        print(f"Total Post: {userDetail[10]}")
-        print(f"Total Friends: {userDetail[11]}")
-        print()
         cursor.execute("SELECT * FROM getUserPost(?) ORDER BY CreatedAt DESC", (userID,))
         posts = cursor.fetchall()
         if posts:
-            for i, post in enumerate(posts, 1):
-                print(f"Post #{i}")
-                print(f"Name: {post[1]}")
-                print(f"Created At: {post[3]}")
-                print(f"Post Content: {post[2]}")  
-                print(f"Likes: {post[4]}", end=" ")
-                print(f"Comments: {post[5]}")
+            for i in range(len(posts)):
+                clear_screen()
+                print(f"UserName: {userDetail[1]}")
+                print(f"Profile Name: {userDetail[6]} {userDetail[7]}")
+                print(f"Date of Birth: {userDetail[8]}")
+                print(f"Total Post: {userDetail[10]}")
+                print(f"Total Friends: {userDetail[11]}")
+                print()
+                print(f"Post #{i+1}")
+                print(f"Name: {posts[i][1]}")
+                print(f"Created At: {posts[i][3]}")
+                print(f"post Content: {posts[i][2]}")  
+                print(f"Likes: {posts[i][4]}", end=" ")
+                print(f"Comments: {posts[i][5]}")
                 print()
 
-            while True:
-                print("\nOptions:")
-                print("1. See who liked a post")
-                print("2. See comments on a post")
-                print("3. Add a comment to a post")
-                print("4. Like a post")
-                print("5. Go back to timeline")
-                choice = input("Enter your choice: ")
+                if check == i:
+                    print("\nOptions:")
+                    print("1. See who liked a post")
+                    print("2. See comments on a post")
+                    print("3. Add a comment to post")
+                    print("4. Like a post")
+                    print("5. Continue")
+                    print("6. Go back")
+                    choice = input("Enter your choice: ")
 
-                if choice == '1':
-                    post_no = int(input("Enter post number to see likes: "))
-                    post_id = posts[post_no - 1][0]  # Get PostID from selected post
-                    cursor.execute("SELECT * FROM getPostLikes(?)", (post_id,))
-                    likes = cursor.fetchall()
-                    print(f"Likes for Post #{post_no}:")
-                    for like in likes:
-                        print(f"- {like[0]}")
-                    input("Press Enter to continue...")
-
-                elif choice == '2':
-                    post_no = int(input("Enter post number to see comments: "))
-                    post_id = posts[post_no - 1][0]  # Get PostID from selected post
-                    cursor.execute("EXEC getPostComments ?", (post_id,))
-                    comments = cursor.fetchall()
-                    print(f"Comments for Post #{post_no}:")
-                    for comment in comments:
-                        print(f"- {comment[0]}: {comment[1]}")
-                    input("Press Enter to continue...")
-
-                elif choice == '3':
-                    post_no = int(input("Enter post number to comment on: "))
-                    post_id = posts[post_no - 1][0]  # Get PostID from selected post
-                    comment = input("Enter your comment: ")
-                    cursor.execute("EXEC insertComment ?, ?, ?", (post_id, userID, comment))
-                    conn.commit()
-                    print("Comment added successfully!")
-                    break
-
-                elif choice == '4':
-                    post_no = int(input("Enter post number to like: "))
-                    post_id = posts[post_no - 1][0]  # Get PostID from selected post
-                    cursor.execute("SELECT * FROM checkUserLikedPost(?, ?)", (post_id, userID))
-                    is_liked = cursor.fetchone()
-                    if is_liked:
-                        print("You have already liked this post!")
+                    if choice == '1':
+                        cursor.execute("SELECT * FROM getPostLikes(?)", (posts[i][0],))
+                        likes = cursor.fetchall()
+                        if likes:
+                            print(f"Likes for Post #{posts[i][0]}:")
+                            for like in likes:
+                                print(f"- {like[0]}") 
+                        else:
+                            print('No One Liked!')
+                        input("Press Enter to Continue...")
+                        break
+                    elif choice == '2':
+                        cursor.execute("EXEC getPostComments ?", (posts[i][0],))
+                        comments = cursor.fetchall()
+                        if comments:
+                            print(f"Comments for Post #{posts[i][0]}:")
+                            for comment in comments:
+                                print(f"- {comment[0]}: {comment[1]}")
+                        else:
+                            print("No Comments Yet")
+                        input("Press Enter to continue...")
+                        break
+                    elif choice == '3':
+                        comment = input("Enter your comment: ")
+                        try:
+                            cursor.execute("EXEC insertComment ?, ?, ?", (posts[i][0], userID, comment))
+                        except pyodbc.Error as ex:
+                            sqlstate = ex.args[0]  
+                            message = ex.args[1]   
+                            print(f"SQL State: {sqlstate}, Error Message: {message}")
+                            time.sleep(1.6)
+                        else:
+                            conn.commit()
+                            print("Comment added successfully!")
+                            break
+                    elif choice == '4':
+                        cursor.execute("SELECT * FROM checkUserLikedPost(?, ?)", (posts[i][0], userID))
+                        is_liked = cursor.fetchone()
+                        if is_liked:
+                            print("You have already liked this post!")
+                            time.sleep(1.6)
+                            break
+                        else:
+                            try:
+                                cursor.execute("EXEC addLike ?, ?", (posts[i][0], userID))
+                            except pyodbc.Error as ex:
+                                sqlstate = ex.args[0]  
+                                message = ex.args[1]   
+                                print(f"SQL State: {sqlstate}, Error Message: {message}")
+                                time.sleep(1.6)
+                                break
+                            else:
+                                conn.commit()
+                                print("Post liked successfully!")
+                                break
+                    elif choice == '5':
+                        check+=1
+                    elif choice == '6':
+                        break
                     else:
-                        cursor.execute("EXEC addLike ?, ?", (post_id, userID))
-                        conn.commit()
-                        print("Post liked successfully!")
-                    break
-
-                elif choice == '5':
-                    break
-                else:
-                    print("Invalid input, please try again.")
+                        print("Invalid input, please try again.")
+            else:
+                break
+               
         else:
             print("No Posts!")
             time.sleep(2)
             break
 
-        check = input("Would you like to exit? (Y/N): ").strip().lower()
-        if check == "y":
+        if choice == '6':
             break
 
 def CreatePost(conn,userID):
@@ -183,11 +218,19 @@ def CreatePost(conn,userID):
         if check.lower() == "n":
             break
         elif check.lower() == "y":
-            cursor.execute("Exec inputPosts ?,?", (userID,content))
-            print("Post Created SuccessFully!")
-            time.sleep(2)
-            conn.commit()
-            break
+            try:
+                cursor.execute("Exec inputPosts ?,?", (userID,content))
+            except pyodbc.Error as ex:
+                sqlstate = ex.args[0]  
+                message = ex.args[1]   
+                print(f"SQL State: {sqlstate}, Error Message: {message}")
+                time.sleep(1.6)
+                break
+            else:
+                print("Post Created SuccessFully!")
+                time.sleep(2)
+                conn.commit()
+                break
         else:
             print("Invalid input. Please try again.")
             break
@@ -246,15 +289,31 @@ def manageFriends(conn, userID):
                 print("Pending Friend Requests:")
                 for req in requests:
                     print(f"ID: {req[0]} | UserName: {req[1]} | Name: {req[2]} {req[3]}")
-                friend_id = int(input("Enter the Friend ID to accept/reject the request: "))
-                action = input("Accept (A) or Reject (R): ").strip().upper()
-                if action == 'A':
-                    cursor.execute("EXEC updateFriendRequestStatus ?, ?", (friend_id, 'Accepted'))
-                    print("Friend request accepted!")
-                elif action == 'R':
-                    cursor.execute("EXEC updateFriendRequestStatus ?, ?", (friend_id, 'Rejected'))
-                    print("Friend request rejected!")
-                conn.commit()
+                try:
+                    friend_id = int(input("Enter the Friend ID to accept/reject the request: "))
+                except Exception as e:
+                    print(f'Error: {e}')
+                else:
+                    action = input("Accept (A) or Reject (R): ").strip().upper()
+                    if action == 'A':
+                        try:
+                            cursor.execute("EXEC updateFriendRequestStatus ?, ?", (friend_id, 'Accepted'))
+                            print("Friend request accepted!")
+                            conn.commit()
+                        except pyodbc.Error as ex:
+                            sqlstate = ex.args[0]  
+                            message = ex.args[1]   
+                            print(f"SQL State: {sqlstate}, Error Message: {message}")
+                    elif action == 'R':
+                        try:
+                            cursor.execute("EXEC updateFriendRequestStatus ?, ?", (friend_id, 'Rejected'))
+                            print("Friend request rejected!")
+                            conn.commit()
+                        except pyodbc.Error as ex:
+                            sqlstate = ex.args[0]  
+                            message = ex.args[1]   
+                            print(f"SQL State: {sqlstate}, Error Message: {message}")
+                    
                 time.sleep(1.5)
             else:
                 print("No pending friend requests.")
@@ -292,14 +351,24 @@ def manageFriends(conn, userID):
                 print("Your Friends:")
                 for i in range(len(friends)):
                     print(f"{i+1}. UserName: {friends[i][1]} | Name: {friends[i][2]} {friends[i][3]}")
-                choice = int(input("Enter the number of the friend to remove: "))
-                if 1 <= choice <= len(friends):
-                    friend_user_id = friends[choice - 1][0]
-                    cursor.execute("EXEC removeFriend ?, ?", (userID, friend_user_id))
-                    conn.commit()
-                    print("Friend removed successfully!")
+                try:
+                    choice = int(input("Enter the number of the friend to remove: "))
+                except Exception as e:
+                    print(f'Error: {e}')
                 else:
-                    print("Invalid choice.")
+                    if 1 <= choice <= len(friends):
+                        friend_user_id = friends[choice - 1][0]
+                        try:
+                            cursor.execute("EXEC removeFriend ?, ?", (userID, friend_user_id))
+                        except pyodbc.Error as ex:
+                            sqlstate = ex.args[0]  
+                            message = ex.args[1]   
+                            print(f"SQL State: {sqlstate}, Error Message: {message}")
+                        else:
+                            conn.commit()
+                            print("Friend removed successfully!")
+                    else:
+                        print("Invalid choice.")
             else:
                 print("No friends to remove.")
             time.sleep(1.5)
@@ -331,11 +400,17 @@ def manageGroupsForMember(conn,userID,groupsJoin,CheckInp):
                     if check.lower() == "n":
                         break
                     elif check.lower() == "y":
-                        cursor.execute("Exec inputGroupPosts ?,?,?", (userID,content,groupsJoin[CheckInp-1][0]))
-                        print("Post Created SuccessFully!")
-                        time.sleep(2)
-                        conn.commit()
-                        break
+                        try:
+                            cursor.execute("Exec inputGroupPosts ?,?,?", (userID,content,groupsJoin[CheckInp-1][0]))
+                        except pyodbc.Error as e:
+                            print(f'Error: {e}')
+                            time.sleep(2)
+                            break
+                        else:
+                            print("Post Created SuccessFully!")
+                            time.sleep(2)
+                            conn.commit()
+                            break
                     else:
                         print("Invalid Input!")
                         time.sleep(1.5)
@@ -373,16 +448,25 @@ def manageGroupsForMember(conn,userID,groupsJoin,CheckInp):
                                         if res:
                                            pass
                                         else:
-                                            cursor.execute("Exec setGroupPostlikes ?,?,?",(userID,posts[i][0],groupsJoin[CheckInp-1][0]))
-                                            conn.commit()
+                                            try:
+                                                cursor.execute("Exec setGroupPostlikes ?,?,?",(userID,posts[i][0],groupsJoin[CheckInp-1][0]))
+                                                conn.commit()
+                                            except pyodbc.Error as e:
+                                                print(f'Error: {e}')
+                                                time.sleep(1.5)
+                                                
                                         break
                                     else:
                                         break
                                 elif takeInput == '2':
                                     x = input("Enter a comment: ").strip()
                                     if x:
-                                        cursor.execute("Exec setGroupPostComments ?,?,?,?",(userID,posts[i][0],groupsJoin[CheckInp-1][0],x))
-                                        conn.commit()
+                                        try:
+                                            cursor.execute("Exec setGroupPostComments ?,?,?,?",(userID,posts[i][0],groupsJoin[CheckInp-1][0],x))
+                                            conn.commit()
+                                        except pyodbc.Error as e:
+                                                print(f'Error: {e}')
+                                                time.sleep(1.5)
                                         break
                                 elif takeInput == '3':
                                     if posts[i][5] != 0:
@@ -426,11 +510,17 @@ def manageGroupsForMember(conn,userID,groupsJoin,CheckInp):
             elif userinput == '4':
                 x = input("You want to exit the group!(Y/N): ")
                 if x.lower() == "y":
-                    cursor.execute("Exec exitGroup ?,?",(userID,groupsJoin[CheckInp-1][0]))
-                    conn.commit()
-                    print("Group left!")
-                    time.sleep(1.5)
-                    return
+                    try:
+                        cursor.execute("Exec exitGroup ?,?",(userID,groupsJoin[CheckInp-1][0]))
+                    except pyodbc.Error as e:
+                        print(f'Error: {e}')
+                        time.sleep(1.5)
+                        return
+                    else:
+                        conn.commit()
+                        print("Group left!")
+                        time.sleep(1.5)
+                        return
             elif userinput == '5':
                 break
         else:
@@ -457,11 +547,17 @@ def manageGroupsForAdmin(conn,userID,groupsJoin,CheckInp):
                     if check.lower() == "n":
                         break
                     elif check.lower() == "y":
-                        cursor.execute("Exec inputGroupPosts ?,?,?", (userID,content,groupsJoin[CheckInp-1][0]))
-                        print("Post Created SuccessFully!")
-                        time.sleep(2)
-                        conn.commit()
-                        break
+                        try:
+                            cursor.execute("Exec inputGroupPosts ?,?,?", (userID,content,groupsJoin[CheckInp-1][0]))
+                        except pyodbc.Error as e:
+                            print(f'Error: {e}')
+                            time.sleep(2)
+                            break
+                        else:
+                            print("Post Created SuccessFully!")
+                            time.sleep(2)
+                            conn.commit()
+                            break
                     else:
                         print("Invalid Input!")
                         time.sleep(1.5)
@@ -500,16 +596,25 @@ def manageGroupsForAdmin(conn,userID,groupsJoin,CheckInp):
                                         if res:
                                            pass
                                         else:
-                                            cursor.execute("Exec setGroupPostlikes ?,?,?",(userID,posts[i][0],groupsJoin[CheckInp-1][0]))
-                                            conn.commit()
+                                            try:
+                                                cursor.execute("Exec setGroupPostlikes ?,?,?",(userID,posts[i][0],groupsJoin[CheckInp-1][0]))
+                                                conn.commit()
+                                            except pyodbc.Error as e:
+                                                print(f'Error: {e}')
+                                                time.sleep(1.5)
+                                                
                                         break
                                     else:
                                         break
                                 elif takeInput == '2':
                                     x = input("Enter a comment: ").strip()
                                     if x:
-                                        cursor.execute("Exec setGroupPostComments ?,?,?,?",(userID,posts[i][0],groupsJoin[CheckInp-1][0],x))
-                                        conn.commit()
+                                        try:
+                                            cursor.execute("Exec setGroupPostComments ?,?,?,?",(userID,posts[i][0],groupsJoin[CheckInp-1][0],x))
+                                            conn.commit()
+                                        except pyodbc.Error as e:
+                                                print(f'Error: {e}')
+                                                time.sleep(1.5)
                                         break
                                 elif takeInput == '3':
                                     if posts[i][5] != 0:
@@ -524,11 +629,17 @@ def manageGroupsForAdmin(conn,userID,groupsJoin,CheckInp):
                                     input("Enter to continue....")
                                     break
                                 elif takeInput == '5':
-                                    cursor.execute("Exec deleteGroupPost ?,?",(posts[i][0],groupsJoin[CheckInp-1][0]))
-                                    conn.commit()
-                                    print("Successfully deleted")
-                                    time.sleep(1.7)
-                                    break
+                                    try:
+                                        cursor.execute("Exec deleteGroupPost ?,?",(posts[i][0],groupsJoin[CheckInp-1][0]))
+                                    except pyodbc.Error as e:
+                                        print(f'Error: {e}')
+                                        time.sleep(1.7)
+                                        break
+                                    else:
+                                        conn.commit()
+                                        print("Successfully deleted")
+                                        time.sleep(1.7)
+                                        break
                                 elif takeInput == '6':
                                     break
                                 else:
@@ -570,11 +681,24 @@ def manageGroupsForAdmin(conn,userID,groupsJoin,CheckInp):
                                     cursor.execute("Select * from getMemGroupPosts(?,?)",(members[i][0],groupsJoin[CheckInp-1][0]))
                                     posid = cursor.fetchall()
                                     for i in range(len(posid)):
-                                        cursor.execute("Exec deleteGroupPost ?,?",(posid[i][0],groupsJoin[CheckInp-1][0]))
-                                        conn.commit()
-                                    cursor.execute("Exec deleteMember ?,?", (members[i][0],groupsJoin[CheckInp-1][0]))
-                                    conn.commit()
-                                    break
+                                        try:
+                                            cursor.execute("Exec deleteGroupPost ?,?",(posid[i][0],groupsJoin[CheckInp-1][0]))
+                                        except pyodbc.Error as e:
+                                            print(f'Error: {e}')
+                                            time.sleep(1.7)
+                                            break
+                                        else:
+                                            conn.commit()
+                                    else:
+                                        try:
+                                            cursor.execute("Exec deleteMember ?,?", (members[i][0],groupsJoin[CheckInp-1][0]))
+                                        except pyodbc.Error as e:
+                                            print(f'Error: {e}')
+                                            time.sleep(1.7)
+                                            break
+                                        else:
+                                            conn.commit()
+                                            break
                             else:
                                 print("Invalid Input!")
                                 time.sleep(1.6)
@@ -591,19 +715,28 @@ def manageGroupsForAdmin(conn,userID,groupsJoin,CheckInp):
             elif userinput == '4':
                 x = input("You want to exit the group!(Y/N): ")
                 if x.lower() == "y":
-                    cursor.execute("Exec exitGroup ?,?",(userID,groupsJoin[CheckInp-1][0]))
-                    conn.commit()
-                    print("Group left!")
+                    try:
+                        cursor.execute("Exec exitGroup ?,?",(userID,groupsJoin[CheckInp-1][0]))
+                    except pyodbc.Error as e:
+                        print(f'Error: {e}')
+                    else:
+                        conn.commit()
+                        print("Group left!")
                     time.sleep(1.5)
                     return
             elif userinput == '5':
                 x = input("Do you want this group deleted permanently?(Y/N): ")
                 if x.lower() == "y":
-                    cursor.execute("Exec deleteGroup ?",(groupsJoin[CheckInp-1][0],))
-                    print("Deleted Successfully!")
-                    conn.commit()
-                    input("Press Enter to Continue....")
-                    return
+                    try:
+                        cursor.execute("Exec deleteGroup ?",(groupsJoin[CheckInp-1][0],))
+                        print("Deleted Successfully!")
+                        conn.commit()
+                        input("Press Enter to Continue....")
+                        return
+                    except pyodbc.Error as e:
+                        print(f'Error: {e}')
+                        time.sleep(1.7)
+                        return
             elif userinput == '6':
                 break
         else:
@@ -623,9 +756,12 @@ def manageGroups(conn,userID):
             if Userinput == '1':
                 name = input("Enter Group Name: ").strip()
                 description = input("Enter Group Description(Optional): ")
-                cursor.execute("Exec newGroup ?,?,?",(userID,name,description))
-                conn.commit()
-                print("Group Created SuccessFully!")
+                try:
+                    cursor.execute("Exec newGroup ?,?,?",(userID,name,description))
+                    conn.commit()
+                    print("Group Created SuccessFully!")
+                except pyodbc.Error as e:
+                    print(f'Error: {e}')
                 time.sleep(1.8)
             elif Userinput == '2':
                 cursor.execute("Select * from getALLGroup()")
@@ -634,18 +770,24 @@ def manageGroups(conn,userID):
                     print(f"GR NO. {i+1} GROUP NAME: {groups[i][1]}")
                     print(f"Description: {groups[i][2]}")
                     print()
-                inputNUM = int(input("Enter Group Number to Join: "))
-                if 1 <= inputNUM <= len(groups):
-                    groupID = groups[inputNUM-1][0]
-                    cursor.execute("Select * from getGroupMembers(?,?)",(groupID,userID))
-                    if cursor.fetchone():
-                        print("You Already Member of this Group!")
+                try: 
+                    inputNUM = int(input("Enter Group Number to Join: "))
+                    if 1 <= inputNUM <= len(groups):
+                        groupID = groups[inputNUM-1][0]
+                        cursor.execute("Select * from getGroupMembers(?,?)",(groupID,userID))
+                        if cursor.fetchone():
+                            print("You Already Member of this Group!")
+                        else:
+                            try:
+                                cursor.execute("Exec insertGroupMember ?,?",(groupID,userID))
+                                conn.commit()
+                                print("Successfully join in the Group!")
+                            except pyodbc.Error as e:
+                                print(f'Error: {e}')
                     else:
-                        cursor.execute("Exec insertGroupMember ?,?",(groupID,userID))
-                        conn.commit()
-                        print("Successfully join in the Group!")
-                else:
-                    print("Invalid Input!")
+                        print("Invalid Input!")
+                except Exception as e:
+                    print(f"Error occurred: {e}")
                 time.sleep(1.8)
             elif Userinput == '3':
                 cursor.execute("Select * from specificGroupsOfUser(?)",(userID,))
@@ -654,14 +796,17 @@ def manageGroups(conn,userID):
                     print(f"Total Groups: {len(groupsJoin)}")
                     for i in range (len(groupsJoin)):
                         print(f"Group Number: {i+1} Group Name: {groupsJoin[i][1]}")
-                    CheckInp = int(input("Enter Group Number to view: "))
-                    if 1 <= CheckInp <= len(groupsJoin):
-                        if not(groupsJoin[CheckInp-1][3] == 'Admin'):
-                            manageGroupsForMember(conn,userID,groupsJoin,CheckInp)
+                    try: 
+                        CheckInp = int(input("Enter Group Number to view: "))
+                        if 1 <= CheckInp <= len(groupsJoin):
+                            if not(groupsJoin[CheckInp-1][3] == 'Admin'):
+                                manageGroupsForMember(conn,userID,groupsJoin,CheckInp)
+                            else:
+                                manageGroupsForAdmin(conn,userID,groupsJoin,CheckInp)
                         else:
-                            manageGroupsForAdmin(conn,userID,groupsJoin,CheckInp)
-                    else:
-                        print("Invalid Input!")
+                            print("Invalid Input!")
+                    except Exception as e:
+                        print(f'Error: {e}')
                 else:
                     print("No Groups Join Yet!")
                 time.sleep(1.7)
@@ -688,16 +833,28 @@ def updateSettings(conn,userID):
             clear_screen()
             if Userinput == '1':
                 x = input("You New User Name: ")
-                cursor.execute("Exec updateUserName ?,?", (userID,x))
-                conn.commit()
+                try:
+                    cursor.execute("Exec updateUserName ?,?", (userID,x))
+                    
+                except:
+                    print('UserName is already Taken!')
+                else:
+                    conn.commit()
+                time.sleep(2)
             elif Userinput == '2':
                 x = get_password()
-                cursor.execute("Exec updatePassWord ?,?", (userID,x))
-                conn.commit()
+                try:
+                    cursor.execute("Exec updatePassWord ?,?", (userID,x))
+                    print("PassWord Updated Sucessfully")
+                    conn.commit()
+                except pyodbc.Error as e:
+                    print(f"Error: {e}")
+                time.sleep(1.7)
+                
             elif Userinput == '3':
                 while(True):
                     clear_screen()
-                    fName = input("Enter Your First Name: ").strip()
+                    fName = input("Enter Your First Name: ").strip() 
                     LName = input("Enter Your Last Name: ").strip()
                     check = input("Would You like To continue(Y/N): ").strip()
                     if check.lower() == "n":
@@ -715,9 +872,14 @@ def updateSettings(conn,userID):
                     clear_screen()
                     x = input("You Want to Deactivate Your Account?(Y/N): ")
                     if x.upper() == "Y":
-                        cursor.execute("Exec updateAccountStatus ?,?", (userID,'Deactivated'))
-                        conn.commit()
-                        return 'Y'
+                        try:
+                            cursor.execute("Exec updateAccountStatus ?,?", (userID,'Deactivated'))
+                            conn.commit()
+                            return 'Y'
+                        except pyodbc.Error as e:
+                            print(f'Error: {e}')
+                            time.sleep(2)
+                            break
                     elif check.lower() == "n":
                         break
                     else:
@@ -730,11 +892,16 @@ def updateSettings(conn,userID):
                     if check.lower() == "n":
                         break
                     elif check.lower() == "y":
-                        cursor.execute("Exec DelUser ?", (userID,))
-                        print("Your Account Has been Deleted SuccessFully!")
-                        time.sleep(2)
-                        conn.commit()
-                        return 'Y'
+                        try:
+                            cursor.execute("Exec DelUser ?", (userID,))
+                            print("Your Account Has been Deleted SuccessFully!")
+                            time.sleep(2)
+                            conn.commit()
+                            return 'Y'
+                        except pyodbc.Error as e:
+                            print(f"Error: {e}")
+                            time.sleep(2)
+                            break
                     else:
                         print("Invalid Input!")
                         time.sleep(2)
@@ -796,12 +963,18 @@ def login(conn):
                 print("Your Account is Deactivated!")
                 check = input("Wants To Activate Your Account(Y/N):")
                 if check.upper() == "Y":
-                    cursor.execute("Exec updateAccountStatus ?,?", (result[0],'Active'))
-                    conn.commit()
-                    print("Activated Your Account SuccessFully!")
-                    time.sleep(1.7)
-                    UserOptions(conn,result[0])
-                break
+                    try:
+                        cursor.execute("Exec updateAccountStatus ?,?", (result[0],'Active'))
+                    except pyodbc.Error as ex:
+                        sqlstate = ex.args[0]  
+                        message = ex.args[1]   
+                        print(f"SQL State: {sqlstate}, Error Message: {message}")
+                    else:
+                        conn.commit()
+                        print("Activated Your Account SuccessFully!")
+                        time.sleep(1.7)
+                        UserOptions(conn,result[0])
+                        break
             elif result[1]== 'Suspended':
                 print("Your Account is Suspened For Some Reasons!")
                 time.sleep(1.7)
@@ -824,30 +997,27 @@ def SignUp(conn):
         userName = input("Enter User Name: ")
         email = input("Enter Email Name: ")
         PassWord = get_password()
-        if userName==PassWord:
-            print("UserName and Password Cannot be same!")
-            time.sleep(1.7)
-            continue
         FirstName= input("Enter First Name: ")
         LastName= input("Enter Last Name: ")
         dateOfBirth = input("Enter Date Of Birth(YYYY-MM-DD):")
-        cursor.execute("SELECT * FROM retriveDataEmailAndUserName(?,?)",(userName,email))
-        result = cursor.fetchone()
-        if result:
-            if result[1] == email and result[0] == userName:
-                print("Username and Email is already taken!")
-            elif result[0] == userName:
-                print("Username is already taken!")
-            elif result[1] == email:
-                print("Email is already taken!")
-            time.sleep(1.7)
-            clear_screen()
-            x=input("Want To Continue?(Y/N): ")
-            if x.upper() == "N":
+        try:
+            cursor.execute("Exec InsertUser ?, ?, ?,?,?,?", (userName, email, PassWord,dateOfBirth,FirstName,LastName))
+        except pyodbc.Error as ex:
+            sqlstate = ex.args[0]  
+            message = ex.args[1]   
+            print(f"SQL State: {sqlstate}, Error Message: {message}")
+            x = input("Do You Want to Continue...(Y/N):").strip()
+            if x.lower() == "n":
+                break
+            elif x.lower() == "y":
+                pass
+            else:
+                print("Invalid Input")
                 break
         else:
-            cursor.execute("Exec InsertUser ?, ?, ?,?,?,?", (userName, email, PassWord,dateOfBirth,FirstName,LastName))
+            print("Account Created SuccessFully! Now Login...")
             conn.commit()
+            input("Press Enter to Continue....")
             break
 
 

@@ -140,6 +140,7 @@ CREATE TABLE Groups (
     NoOfGroupMembers INT DEFAULT 0,
     FOREIGN KEY (CreatedBy) REFERENCES Users(UserID)
 );
+--mani 2 mani of users and groups
 CREATE TABLE GroupMembers (
     GroupID INT NOT NULL,
     UserID INT NOT NULL,
@@ -150,7 +151,8 @@ CREATE TABLE GroupMembers (
     FOREIGN KEY (GroupID) REFERENCES Groups(GroupID),
     FOREIGN KEY (UserID) REFERENCES Users(UserID)
 );
-
+--1 o m wih user
+-- 1 o m wih groups
 CREATE TABLE GroupPosts (
     GroupPostID INT IDENTITY(1,1) PRIMARY KEY ,
     GroupID INT NOT NULL,

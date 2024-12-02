@@ -1,5 +1,6 @@
 use SocialMediaPlatform;
 GO
+--ok
 CREATE OR ALTER PROCEDURE InsertUser
     @Username VARCHAR(50),
     @Email VARCHAR(100),
@@ -12,7 +13,7 @@ INSERT INTO Users
     (Username, Email, PasswordF, DateOfBirth ,FirstName ,LastName)
 VALUES
     (@Username, @Email, @PasswordF, @Birthdate , @FirstName, @LastName);
-
+--ok
 GO
 CREATE OR ALTER PROCEDURE updateAccountStatus
     @UserID INT,
@@ -21,7 +22,7 @@ AS
 UPDATE Users
 SET AccountStatus = @AccountStatus, UpdatedAt = GETDATE()
 WHERE UserID= @UserID;
-
+--ok
 GO
 CREATE OR ALTER PROCEDURE updateUserName
     @UserID INT,
@@ -30,6 +31,7 @@ AS
 UPDATE Users
 SET Username  = @Username,UpdatedAt = GETDATE()
 WHERE UserID= @UserID
+--ok
 GO
 CREATE OR ALTER PROCEDURE updatePassWord
     @UserID INT,
@@ -38,7 +40,7 @@ AS
 UPDATE Users
 SET PasswordF=@PasswordF, UpdatedAt = GETDATE()
 WHERE UserID= @UserID
-
+--ok
 GO
 CREATE OR ALTER PROCEDURE updateName
     @UserID INT,
@@ -50,7 +52,7 @@ SET FirstName=@Fname, LastName = @Lname, UpdatedAt = GETDATE()
 WHERE UserID= @UserID
 GO
 
-
+--ok
 CREATE OR ALTER PROCEDURE inputPosts
     @UserID INT,
     @Content Text
@@ -60,13 +62,11 @@ INSERT INTO Posts
 VALUES
     (@UserID, @Content);
 GO
-
+--extra
 CREATE OR ALTER PROCEDURE DelPost
     @UserID INT
 AS
 DELETE FROM Posts WHERE UserID = @UserID;
-
-
 
 GO
 CREATE OR ALTER PROCEDURE DelLikes
@@ -82,7 +82,7 @@ AS
 DELETE FROM Comments WHERE UserID = @UserID;
 
 GO
-
+--ok
 CREATE OR ALTER PROCEDURE getPostComments
     @PostID INT
 AS
@@ -93,7 +93,7 @@ BEGIN
     WHERE Comments.PostID = @PostID
     ORDER BY Comments.CreatedAt DESC;
 END;
-
+--ok
 GO
 CREATE OR ALTER PROCEDURE addLike
     @PostID INT,
@@ -105,7 +105,7 @@ BEGIN
     VALUES
         (@PostID, @UserID, GETDATE());
 END;
-
+--ok
 GO
 CREATE OR ALTER PROCEDURE insertComment
     @PostID INT,
@@ -118,7 +118,7 @@ BEGIN
     VALUES
         (@PostID, @UserID, @CommentContent, GETDATE());
 END;
-
+--ok
 GO
 CREATE OR ALTER PROCEDURE sendFriendRequest
     @UserID INT,
@@ -132,7 +132,7 @@ BEGIN
 END;
 
 GO
-
+--ok
 CREATE OR ALTER PROCEDURE updateFriendRequestStatus
     @SenderID INT,
     @Status VARCHAR(20)
@@ -144,7 +144,7 @@ BEGIN
 END;
 
 GO
-
+--ok
 CREATE OR ALTER PROCEDURE getSentRequests
     @UserID INT
 AS
@@ -160,6 +160,7 @@ BEGIN
     WHERE F.SenderID = @UserID and Status = 'Pending'
 END;
 GO
+--ok
 CREATE OR ALTER PROCEDURE getFriendsList
     @UserID INT
 AS
@@ -179,7 +180,7 @@ BEGIN
             (F.ReceiverID = @UserID AND U.UserID = F.SenderID)
     WHERE F.Status = 'Accepted';
 END;
-
+--ok
 GO
 CREATE OR ALTER PROCEDURE removeFriend
     @UserID INT,
@@ -191,24 +192,8 @@ BEGIN
         (SenderID = @FriendID AND ReceiverID = @UserID);
 END;
 GO
-CREATE OR ALTER PROCEDURE newGroup
-    @UserID INT,
-    @GroupName VARCHAR(100),
-    @Description Text
-AS
-INSERT INTO Groups
-    (GroupName, Description, CreatedBy)
-VALUES
-    ( @GroupName, @Description, @UserID );
-DECLARE @GroupID INT;
-SELECT @GroupID = GroupID
-from Groups
-WHERE CreatedBy = @UserID;
-INSERT INTO GroupMembers
-    (GroupID,UserID,Role)
-VALUES
-    ( @GroupID, @UserID, 'Admin' );
-    
+
+--ok   
 GO
 CREATE OR ALTER PROCEDURE insertGroupMember
     @GroupID Int,
@@ -222,7 +207,7 @@ BEGIN
 END
 
 
-
+--ok
 GO
 CREATE OR ALTER PROCEDURE inputGroupPosts
     @UserID INT,
@@ -233,7 +218,7 @@ INSERT INTO GroupPosts
     (UserID,Content,GroupID)
 VALUES
     (@UserID, @Content, @GroupID);
-
+--ok
 GO
 CREATE OR ALTER PROCEDURE getGroupPosts
     @GroupID INT
@@ -252,6 +237,7 @@ BEGIN
     ORDER BY PostDate DESC
 END
 GO
+--ok
 CREATE OR ALTER PROCEDURE setGroupPostlikes
     @UserID INT,
     @PostID INT,
@@ -263,6 +249,7 @@ BEGIN
     VALUES(@GroupID, @UserID, @PostID)
 END
 GO
+--ok
 CREATE OR ALTER PROCEDURE setGroupPostComments
     @UserID INT,
     @PostID INT,
@@ -276,7 +263,7 @@ BEGIN
 END
 
 GO
-
+--ok
 CREATE OR ALTER PROCEDURE getCommentGroupPost
     @PostID INT,
     @GroupID INT
@@ -293,7 +280,7 @@ END
 
 GO
 
-
+--ok
 CREATE OR ALTER PROCEDURE deleteMember
     @UserID INT,
     @GroupID INT
@@ -303,10 +290,8 @@ BEGIN
 END
 GO
 
-
-
 -----------------------
---Get chat
+--Get chat ok
 CREATE OR ALTER PROCEDURE getChat @SenderID INT , @ReceiverID INT 
 AS
 BEGIN
@@ -316,7 +301,7 @@ WHERE (SenderID = @SenderID AND ReceiverID = @ReceiverID)
    OR (SenderID = @ReceiverID AND ReceiverID = @SenderID)
 ORDER BY SentAt ASC
 END
-
+--ok
 GO
 CREATE OR ALTER PROCEDURE updateMessageRead @UserID INT, @ChatPartnerID INT
 AS
@@ -327,7 +312,7 @@ WHERE ReceiverID = @UserID AND SenderID = @ChatPartnerID AND IsRead = 0;
 END;
 
 GO
-
+--ok
 CREATE OR ALTER PROCEDURE newMsg @UserID INT, @ChatPartnerID INT, @Content NVARCHAR(MAX)
 AS 
 BEGIN

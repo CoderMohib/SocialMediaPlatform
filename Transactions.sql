@@ -97,6 +97,38 @@ BEGIN
 END;
 
 GO
+CREATE OR ALTER PROCEDURE newGroup
+    @UserID INT,
+    @GroupName VARCHAR(100),
+    @Description TEXT
+AS
+BEGIN
+    BEGIN TRANSACTION;
+    BEGIN TRY
+        INSERT INTO Groups
+            (GroupName, Description, CreatedBy)
+        VALUES
+            ( @GroupName, @Description, @UserID );
+
+        DECLARE @GroupID INT;
+
+        SELECT @GroupID = GroupID
+        FROM Groups
+        WHERE CreatedBy = @UserID AND GroupName = @GroupName AND Description = @Description;
+
+        INSERT INTO GroupMembers
+            (GroupID, UserID, Role)
+        VALUES
+            ( @GroupID, @UserID, 'Admin' );
+        COMMIT;
+    END TRY
+    BEGIN CATCH
+        ROLLBACK transaction;
+        THROW;
+    END CATCH
+END
+
+GO
 ---------------------------------------------
 CREATE OR ALTER PROCEDURE DelUser
     @UserID INT

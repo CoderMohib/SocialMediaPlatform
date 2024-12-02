@@ -1,7 +1,8 @@
 USE SocialMediaPlatform;     
 -- Select rows from a Table or View 'TableOrViewName' in schema 'SchemaName'
 GO
-
+DELETE FROM Messages WHERE Content = 'python -u "d:\4 seme\DBLAB\Project\tempCodeRunnerFile.py"'
+SELECT * from Messages
 -- Insert Users
 INSERT INTO Users (Username, Email, PasswordF, FirstName, LastName, DateOfBirth)
 VALUES 
